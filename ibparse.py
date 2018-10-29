@@ -50,6 +50,10 @@ def find_exchange_rate(currency, date):
     return exchange_rate
 
 
+def fi_style_date(date):
+    return datetime.strftime(datetime.strptime(date, '%Y-%m-%d'), '%d.%m.%Y')
+
+
 def process_stocks(line):
     # field  content      example
     # 4      currency     'USD'
@@ -100,9 +104,9 @@ def process_stocks(line):
                 print('-----------------------------------------')
                 print('Arvopaperin nimi:  %s' %(desc))
                 print('Lukumäärä:         %d' %(lotsize))
-                print('Luovutusaika:      %s' %(date))
+                print('Luovutusaika:      %s' %(fi_style_date(date)))
                 print('Luovutushinta:     %.2f' %(lotsize * price / exchange_rate))
-                print('Hankinta-aika:     %s' %(head[3]))
+                print('Hankinta-aika:     %s' %(fi_style_date(head[3])))
                 print('Hankintahinta:     %.2f' %(lotsize * head[1]))
                 print('Hankintakulut:     %.2f' %(buy_expense))
                 print('Myyntikulut:       %.2f' %(sell_expense))
