@@ -95,6 +95,8 @@ def process_stocks(line):
 #                print('%s: sold %d %s @%f %s: %f EUR paid %f EUR profit %f EUR comm %f' % (date, lotsize, desc, price, currency, lotsize * price / exchange_rate, lotsize * head[1], profit, commission))
                 buy_expense = head[2] * lotsize / head[0]
                 sell_expense = commission / exchange_rate * lotsize / -amount
+                profit -= buy_expense
+                profit -= sell_expense
                 print('-----------------------------------------')
                 print('Arvopaperin nimi:  %s' %(desc))
                 print('Lukumäärä:         %d' %(lotsize))
@@ -104,7 +106,7 @@ def process_stocks(line):
                 print('Hankintahinta:     %.2f' %(lotsize * head[1]))
                 print('Hankintakulut:     %.2f' %(buy_expense))
                 print('Myyntikulut:       %.2f' %(sell_expense))
-                print('%s:            %.2f' %('Voitto' if profit >= 0.0 else 'Tappio', profit - buy_expense - sell_expense))
+                print('%s:            %.2f' %('Voitto' if profit >= 0.0 else 'Tappio', profit))
             else:
                 print('cannot handle short positions: %s' % (desc))
             left -= lotsize
