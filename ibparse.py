@@ -3,6 +3,7 @@
 
 import sys
 import csv
+import getopt
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 
@@ -54,7 +55,7 @@ def fi_style_date(date):
     return datetime.strftime(datetime.strptime(date, '%Y-%m-%d'), '%d.%m.%Y')
 
 
-def process_stocks(line):
+def process_stocks(line, year):
     # field  content      example
     # 4      currency     'USD'
     # 5      ticker       'GILD'
@@ -95,6 +96,11 @@ def process_stocks(line):
                     position.pop(0)
                 else:
                     position[0] = (head[0] - lotsize, head[1], head[2], head[3])
+
+                if year and year != date[:4]: # gah, parse date!
+                    left -= lotsize
+                    continue
+
                 profit = lotsize * (price / exchange_rate - head[1])
 #                print('%s: sold %d %s @%f %s: %f EUR paid %f EUR profit %f EUR comm %f' % (date, lotsize, desc, price, currency, lotsize * price / exchange_rate, lotsize * head[1], profit, commission))
                 buy_expense = head[2] * lotsize / head[0]
@@ -117,6 +123,22 @@ def process_stocks(line):
 
 
 def main():
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'y:')
+    except getopt.GetoptError as err:
+        print('%s' %(str(err)))
+        sys.exit(1)
+
+    year = None
+    for opt, arg in opts:
+        if opt == '-y':
+            year = arg
+
+    if year:
+        print('year filter: %s' %(year))
+    else:
+        print('no year filter')
+
     reader = csv.reader(sys.stdin)
     events = []
     for line in reader:
@@ -127,7 +149,7 @@ def main():
                 contracts[ticker] = (line[4], line[5])
     events.sort(key=date_sort)
     for line in events:
-        process_stocks(line)
+        process_stocks(line, year)
 
 
 if __name__ == '__main__':
