@@ -67,7 +67,6 @@ def process_stocks(line, year):
     # 12     total cash   694.83125725
     #print(line)
     ticker = line[5]
-    # now lookup conid and use that instead of ticker!
     conid = contracts[ticker][1]
     desc = contracts[ticker][0]
     amount = int(str(line[7]).replace(',', ''))
@@ -78,16 +77,16 @@ def process_stocks(line, year):
     if currency != 'EUR' and currency not in exchange_rates:
         add_to_exchange_rates(currency)
     exchange_rate = find_exchange_rate(currency, date)
-#    print('%s: %s %d %s @%f comm %f %s %f' %(date, 'buy' if amount > 0 else 'sell', abs(amount), ticker, price, commission, currency, exchange_rate))
-    if ticker not in positions:
-        positions[ticker] = []
+#    print('%s: %s %d %s (conid %s) @%f comm %f %s %f' %(date, 'buy' if amount > 0 else 'sell', abs(amount), ticker, conid, price, commission, currency, exchange_rate))
+    if conid not in positions:
+        positions[conid] = []
     if amount > 0: # buy trade
-        positions[ticker].append((amount, price / exchange_rate, commission / exchange_rate, date))
+        positions[conid].append((amount, price / exchange_rate, commission / exchange_rate, date))
     if amount < 0: # sell trade
         left = -amount
         while left:
             lotsize = left
-            position = positions[ticker]
+            position = positions[conid]
             if len(position) > 0:
                 head = position[0]
                 if lotsize >= head[0]:
@@ -133,11 +132,6 @@ def main():
     for opt, arg in opts:
         if opt == '-y':
             year = arg
-
-    if year:
-        print('year filter: %s' %(year))
-    else:
-        print('no year filter')
 
     reader = csv.reader(sys.stdin)
     events = []
