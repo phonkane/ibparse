@@ -5,6 +5,7 @@ import sys
 import csv
 import getopt
 import xml.etree.ElementTree as ET
+import urllib2
 from datetime import datetime, timedelta
 
 
@@ -19,9 +20,24 @@ def date_sort(elem):
     return elem[6]
 
 
-def add_to_exchange_rates(currency):
-    # download XML file if it does not exist - in Makefile?
+def download_currency_xml(filename):
+    u = urllib2.urlopen(ecb_base_url + filename)
+    f = open(filename, 'wb')
+    buf = u.read()
+    if buf:
+        f.write(buf)
+
+
+def add_to_exchange_rates(currency, download_xml):
     filename = currency.lower() + '.xml'
+    if download_xml:
+        download_currency_xml(filename)
+    try:
+        f = open(filename, 'rb')
+    except IOError:
+        download_currency_xml(filename)
+        f = open(filename, 'rb')
+    xml = f.read()
     tree = ET.parse(filename)
     root = tree.getroot()
     rate_data = {}
@@ -55,7 +71,7 @@ def fi_style_date(date):
     return datetime.strftime(datetime.strptime(date, '%Y-%m-%d'), '%d.%m.%Y')
 
 
-def process_stocks(line, year):
+def process_stocks(line, year, download_xml):
     # field  content      example
     # 4      currency     'USD'
     # 5      ticker       'GILD'
@@ -75,7 +91,7 @@ def process_stocks(line, year):
     currency = line[4]
     date = line[6][:10]
     if currency != 'EUR' and currency not in exchange_rates:
-        add_to_exchange_rates(currency)
+        add_to_exchange_rates(currency, download_xml)
     exchange_rate = find_exchange_rate(currency, date)
 #    print('%s: %s %d %s (conid %s) @%f comm %f %s %f' %(date, 'buy' if amount > 0 else 'sell', abs(amount), ticker, conid, price, commission, currency, exchange_rate))
     if conid not in positions:
@@ -123,13 +139,16 @@ def process_stocks(line, year):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'y:')
+        opts, args = getopt.getopt(sys.argv[1:], 'dy:')
     except getopt.GetoptError as err:
         print('%s' %(str(err)))
         sys.exit(1)
 
     year = None
+    download = False
     for opt, arg in opts:
+        if opt == '-d':
+            download = True
         if opt == '-y':
             year = arg
 
@@ -143,7 +162,7 @@ def main():
                 contracts[ticker] = (line[4], line[5])
     events.sort(key=date_sort)
     for line in events:
-        process_stocks(line, year)
+        process_stocks(line, year, download)
 
 
 if __name__ == '__main__':
