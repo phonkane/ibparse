@@ -82,6 +82,7 @@ def process_stocks(line, year, download_xml):
     # 11     commission   -0.33125725
     # 12     total cash   694.83125725
     #print(line)
+    profit = 0
     ticker = line[5]
     conid = contracts[ticker][1]
     desc = contracts[ticker][0]
@@ -135,6 +136,7 @@ def process_stocks(line, year, download_xml):
             else:
                 print('cannot handle short positions: %s' % (desc))
             left -= lotsize
+    return profit
 
 
 def main():
@@ -161,8 +163,11 @@ def main():
             for ticker in line[3].split(', '):
                 contracts[ticker] = (line[4], line[5])
     events.sort(key=date_sort)
+    total_profit = 0
     for line in events:
-        process_stocks(line, year, download)
+        total_profit += process_stocks(line, year, download)
+    print('-----------------------------------------')
+    print('Voitto yhteensä:   %.02f' %(total_profit))
 
 
 if __name__ == '__main__':
