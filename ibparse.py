@@ -9,7 +9,7 @@ import urllib2
 from datetime import datetime, timedelta
 
 
-ecb_base_url='https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/'
+ecb_base_url = 'https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/'
 
 positions = {}
 exchange_rates = {}
@@ -37,10 +37,12 @@ def add_to_exchange_rates(currency, download_xml):
     except IOError:
         download_currency_xml(filename)
         f = open(filename, 'rb')
+
     xml = f.read()
     tree = ET.parse(filename)
     root = tree.getroot()
     rate_data = {}
+
     for child in root:
         if 'DataSet' in str(child.tag):
             for grandchild in child:
@@ -81,7 +83,6 @@ def process_stocks(line, year, download_xml):
     # 10     total price  -695.5
     # 11     commission   -0.33125725
     # 12     total cash   694.83125725
-    #print(line)
     profit = 0
     ticker = line[5]
     conid = contracts[ticker][1]
@@ -91,14 +92,17 @@ def process_stocks(line, year, download_xml):
     commission = -float(line[11])
     currency = line[4]
     date = line[6][:10]
+
     if currency != 'EUR' and currency not in exchange_rates:
         add_to_exchange_rates(currency, download_xml)
     exchange_rate = find_exchange_rate(currency, date)
-#    print('%s: %s %d %s (conid %s) @%f comm %f %s %f' %(date, 'buy' if amount > 0 else 'sell', abs(amount), ticker, conid, price, commission, currency, exchange_rate))
+
     if conid not in positions:
         positions[conid] = []
+
     if amount > 0: # buy trade
         positions[conid].append((amount, price / exchange_rate, commission / exchange_rate, date))
+
     if amount < 0: # sell trade
         left = -amount
         while left:
@@ -107,7 +111,6 @@ def process_stocks(line, year, download_xml):
             if len(position) > 0:
                 head = position[0]
                 if lotsize >= head[0]:
-#                    print('sell entire head!')
                     lotsize = head[0]
                     position.pop(0)
                 else:
@@ -118,7 +121,6 @@ def process_stocks(line, year, download_xml):
                     continue
 
                 profit = lotsize * (price / exchange_rate - head[1])
-#                print('%s: sold %d %s @%f %s: %f EUR paid %f EUR profit %f EUR comm %f' % (date, lotsize, desc, price, currency, lotsize * price / exchange_rate, lotsize * head[1], profit, commission))
                 buy_expense = head[2] * lotsize / head[0]
                 sell_expense = commission / exchange_rate * lotsize / -amount
                 profit -= buy_expense
@@ -134,7 +136,7 @@ def process_stocks(line, year, download_xml):
                 print('Myyntikulut:       %.2f' %(sell_expense))
                 print('%s:            %.2f' %('Voitto' if profit >= 0.0 else 'Tappio', profit))
             else:
-                print('cannot handle short positions: %s' % (desc))
+                print('Lyhyeksi myyntiä ei ole toteutettu: %s' %(desc))
             left -= lotsize
     return profit
 
@@ -166,6 +168,7 @@ def main():
     total_profit = 0
     for line in events:
         total_profit += process_stocks(line, year, download)
+
     print('-----------------------------------------')
     print('Voitto yhteensä:   %.02f' %(total_profit))
 
