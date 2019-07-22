@@ -73,6 +73,19 @@ def fi_style_date(date):
     return datetime.strftime(datetime.strptime(date, '%Y-%m-%d'), '%d.%m.%Y')
 
 
+def dump_close(desc, lotsize, sell_date, sell_price, buy_date, buy_expense, buy_price, sell_expense, profit):
+    print('-----------------------------------------')
+    print('Arvopaperin nimi:  %s' %(desc))
+    print('Lukumäärä:         %d' %(lotsize))
+    print('Luovutusaika:      %s' %(fi_style_date(sell_date)))
+    print('Luovutushinta:     %.2f' %(lotsize * sell_price))
+    print('Hankinta-aika:     %s' %(fi_style_date(buy_date)))
+    print('Hankintahinta:     %.2f' %(lotsize * buy_price))
+    print('Hankintakulut:     %.2f' %(buy_expense))
+    print('Myyntikulut:       %.2f' %(sell_expense))
+    print('%s:            %.2f' %('Voitto' if profit >= 0.0 else 'Tappio', profit))
+
+
 def process_stocks(line, year, download_xml):
     # field  content      example
     # 4      currency     'USD'
@@ -100,45 +113,69 @@ def process_stocks(line, year, download_xml):
     if conid not in positions:
         positions[conid] = []
 
-    if amount > 0: # buy trade
-        positions[conid].append((amount, price / exchange_rate, commission / exchange_rate, date))
-
-    if amount < 0: # sell trade
-        left = -amount
-        while left:
-            lotsize = left
-            position = positions[conid]
-            if len(position) > 0:
-                head = position[0]
+    position = positions[conid]
+    while amount:
+        if len(position) == 0:
+            # no previous position
+            positions[conid].append((amount, price / exchange_rate, commission / exchange_rate, date))
+            amount = 0
+            continue
+        head = position[0]
+        if head[0] > 0:
+            # long position
+            if amount > 0:
+                # buy trade
+                positions[conid].append((amount, price / exchange_rate, commission / exchange_rate, date))
+                amount = 0
+            else:
+                # sell trade
+                lotsize = -amount
+                buy_date = head[3]
+                profit = lotsize * (price / exchange_rate - head[1])
                 if lotsize >= head[0]:
+                    # this lot completely sold
                     lotsize = head[0]
                     position.pop(0)
                 else:
+                    # this lot partially sold
                     position[0] = (head[0] - lotsize, head[1], head[2], head[3])
-
-                if year and year != date[:4]: # gah, parse date!
-                    left -= lotsize
-                    continue
-
-                profit = lotsize * (price / exchange_rate - head[1])
                 buy_expense = head[2] * lotsize / head[0]
-                sell_expense = commission / exchange_rate * lotsize / -amount
+                sell_expense = -commission / exchange_rate * lotsize / amount
                 profit -= buy_expense
                 profit -= sell_expense
-                print('-----------------------------------------')
-                print('Arvopaperin nimi:  %s' %(desc))
-                print('Lukumäärä:         %d' %(lotsize))
-                print('Luovutusaika:      %s' %(fi_style_date(date)))
-                print('Luovutushinta:     %.2f' %(lotsize * price / exchange_rate))
-                print('Hankinta-aika:     %s' %(fi_style_date(head[3])))
-                print('Hankintahinta:     %.2f' %(lotsize * head[1]))
-                print('Hankintakulut:     %.2f' %(buy_expense))
-                print('Myyntikulut:       %.2f' %(sell_expense))
-                print('%s:            %.2f' %('Voitto' if profit >= 0.0 else 'Tappio', profit))
+                if not year or year == date[:4]: # parse date!
+                    dump_close(desc, lotsize, date, price / exchange_rate, buy_date, buy_expense, head[1], sell_expense, profit)
+                amount += lotsize
+        else:
+            # short position - not tested!
+            if amount > 0:
+                # buy trade
+                lotsize = amount 
+                sell_date = head[3]
+                profit = lotsize * (head[1] - price / exchange_rate)
+                if lotsize >= -head[0]:
+                    # this lot completely bought
+                    lotsize = -head[0]
+                    position.pop(0)
+                else:
+                    # this position partially bought
+                    position[0] = (head[0] - lotsize, head[1], head[2], head[3])
+                buy_expense = commission / exchange_rate * lotsize / amount
+                sell_expense = head[2] * lotsize / head[0]
+                profit -= buy_expense
+                profit -= sell_expense
+                if not year or year == date[:4]: # parse date!
+                    dump_close(desc, abs(lotsize), sell_date, head[1], date, buy_expense, price / exchange_rate, sell_expense, profit)
+                amount -= lotsize
             else:
-                print('Lyhyeksi myyntiä ei ole toteutettu: %s' %(desc))
-            left -= lotsize
-    return profit
+                # sell trade
+                positions[conid].append((amount, price / exchange_rate, commission / exchange_rate, date))
+                amount = 0
+
+    if not year or year == date[:4]:
+        return profit
+    else:
+        return 0
 
 
 def main():
