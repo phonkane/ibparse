@@ -159,7 +159,7 @@ def process_stocks(line, year, download_xml):
                     position.pop(0)
                 else:
                     # this position partially bought
-                    position[0] = (head[0] - lotsize, head[1], head[2], head[3])
+                    position[0] = (head[0] + lotsize, head[1], head[2], head[3])
                 buy_expense = commission / exchange_rate * lotsize / amount
                 sell_expense = head[2] * lotsize / head[0]
                 profit -= buy_expense
