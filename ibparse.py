@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: UTF-8
 
 import sys
 import csv
 import getopt
 import xml.etree.ElementTree as ET
-import urllib2
+import urllib.request
 from datetime import datetime, timedelta
 
 
@@ -21,7 +21,7 @@ def date_sort(elem):
 
 
 def download_currency_xml(filename):
-    u = urllib2.urlopen(ecb_base_url + filename)
+    u = urllib.request.urlopen(ecb_base_url + filename)
     f = open(filename, 'wb')
     buf = u.read()
     if buf:
@@ -100,7 +100,10 @@ def process_stocks(line, year, download_xml):
     ticker = line[5]
     conid = contracts[ticker][1]
     desc = contracts[ticker][0]
-    amount = int(str(line[7]).replace(',', ''))
+    try:
+        amount = int(str(line[7]).replace(',', ''))
+    except:
+        amount = 0 # XXX
     price = float(line[8])
     commission = -float(line[11])
     currency = line[4]
