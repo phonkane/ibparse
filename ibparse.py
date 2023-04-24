@@ -15,6 +15,7 @@ ecb_base_url = 'https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_r
 positions = {}
 exchange_rates = {}
 contracts = {}
+aliases = {}
 
 
 def date_sort(elem):
@@ -99,7 +100,12 @@ def process_stocks(line, year, download_xml):
     # 12     total cash   694.83125725
     profit = 0
     ticker = line[5]
-    conid = contracts[ticker][1]
+    conid = None
+    if ticker in aliases:
+        if aliases[ticker] in contracts:
+            conid = contracts[aliases[ticker]][1]
+    if not conid:
+        conid = contracts[ticker][1]
     desc = contracts[ticker][0]
     try:
         amount = int(str(line[7]).replace(',', ''))
@@ -209,6 +215,10 @@ def main():
         if line[0] == 'Financial Instrument Information' and line[1] == 'Data' and line[2] == 'Stocks':
             for ticker in line[3].split(', '):
                 contracts[ticker] = (line[4], line[5])
+        if line[0] == 'Corporate Actions' and line[1] == 'Data' and 'Stocks' in line[2] and 'ISIN Change to' in line[6]:
+            oldticker = line[6].split('(')[0]
+            newticker = line[6].split('(')[3].split(',')[0]
+            aliases[newticker] = oldticker
     events.sort(key=date_sort)
     total_profit = 0
     for line in events:
