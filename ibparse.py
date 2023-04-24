@@ -6,6 +6,7 @@ import csv
 import getopt
 import xml.etree.ElementTree as ET
 import urllib.request
+import re
 from datetime import datetime, timedelta
 
 
@@ -200,6 +201,10 @@ def main():
     events = []
     for line in reader:
         if line[0] == 'Trades' and line[1] == 'Data' and line[2] == 'Order' and line[3][:6] == 'Stocks':
+            # CSV format was changed in 2021, account number inserted at
+            # column 5
+            if re.match("U[0-9]+", line[5]):
+                line.pop(5)
             events.append(line)
         if line[0] == 'Financial Instrument Information' and line[1] == 'Data' and line[2] == 'Stocks':
             for ticker in line[3].split(', '):
