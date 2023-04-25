@@ -162,7 +162,6 @@ def process_stocks(line, year, download_xml):
                 # buy trade
                 lotsize = amount 
                 sell_date = head[3]
-                profit = lotsize * (head[1] - price / exchange_rate)
                 if lotsize >= -head[0]:
                     # this lot completely bought
                     lotsize = -head[0]
@@ -170,6 +169,7 @@ def process_stocks(line, year, download_xml):
                 else:
                     # this position partially bought
                     position[0] = (head[0] + lotsize, head[1], head[2], head[3])
+                profit = lotsize * (head[1] - price / exchange_rate)
                 buy_expense = commission / exchange_rate * lotsize / amount
                 sell_expense = head[2] * lotsize / head[0]
                 profit -= buy_expense
