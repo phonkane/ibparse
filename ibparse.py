@@ -99,6 +99,7 @@ def process_stocks(line, year, download_xml):
     # 11     commission   -0.33125725
     # 12     total cash   694.83125725
     profit = 0
+    event_profit = 0
     ticker = line[5]
     conid = None
     if ticker in aliases:
@@ -111,6 +112,7 @@ def process_stocks(line, year, download_xml):
         amount = int(str(line[7]).replace(',', ''))
     except:
         amount = 0 # XXX
+    total_amount = amount
     price = float(line[8])
     commission = -float(line[11])
     currency = line[4]
@@ -150,11 +152,12 @@ def process_stocks(line, year, download_xml):
                     position[0] = (head[0] - lotsize, head[1], head[2], head[3])
                 profit = lotsize * (price / exchange_rate - head[1])
                 buy_expense = head[2] * lotsize / head[0]
-                sell_expense = -commission / exchange_rate * lotsize / amount
+                sell_expense = -commission / exchange_rate * lotsize / total_amount
                 profit -= buy_expense
                 profit -= sell_expense
                 if not year or year == date[:4]: # parse date!
                     dump_close(desc, lotsize, date, price / exchange_rate, buy_date, buy_expense, head[1], sell_expense, profit)
+                event_profit += profit
                 amount += lotsize
         else:
             # short position - not tested!
@@ -170,12 +173,13 @@ def process_stocks(line, year, download_xml):
                     # this position partially bought
                     position[0] = (head[0] + lotsize, head[1], head[2], head[3])
                 profit = lotsize * (head[1] - price / exchange_rate)
-                buy_expense = commission / exchange_rate * lotsize / amount
+                buy_expense = commission / exchange_rate * lotsize / total_amount
                 sell_expense = head[2] * lotsize / head[0]
                 profit -= buy_expense
                 profit -= sell_expense
                 if not year or year == date[:4]: # parse date!
                     dump_close(desc, abs(lotsize), sell_date, head[1], date, buy_expense, price / exchange_rate, sell_expense, profit)
+                event_profit += profit
                 amount -= lotsize
             else:
                 # sell trade
@@ -183,7 +187,7 @@ def process_stocks(line, year, download_xml):
                 amount = 0
 
     if not year or year == date[:4]:
-        return profit
+        return event_profit
     else:
         return 0
 
